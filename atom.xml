@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://yoursite.com/"/>
-  <updated>2020-05-01T07:47:35.883Z</updated>
+  <updated>2020-05-01T08:45:15.602Z</updated>
   <id>http://yoursite.com/</id>
   
   <author>
@@ -15,6 +15,26 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Ollvm-0x0</title>
+    <link href="http://yoursite.com/2020/05/01/Ollvm-0x0/"/>
+    <id>http://yoursite.com/2020/05/01/Ollvm-0x0/</id>
+    <published>2020-05-01T08:43:54.000Z</published>
+    <updated>2020-05-01T08:45:15.602Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="ollvm-部分提前知识"><a href="#ollvm-部分提前知识" class="headerlink" title="ollvm 部分提前知识"></a><center>ollvm 部分提前知识</center></h2><p>寒假在家，分析了ollvm的混淆实现（很多地方借鉴了别处的分析，只不过我的分析可能具体点，很多地方翻译了张总的博客），由于在家写的是word，就直接复制粘贴到markdown里了，如果不妥，请见谅，如果发现侵权，请联系<a href="mailto:858689519@qq.com">858689519@qq.com</a><br>from mayuyu.io<br><a id="more"></a><br>从简单的开始，我们的第一个任务就是去修改函数符号，为了成为一个更好的混淆器去取代之前的。<br>核心想法很简单，我们只需要去创建一个继承自pass的类，然后重写runOnxxx方法（这里补充下，runOnModule代表从每个模块入口，runOnFunction代表从每个函数入口，runOnBasicBlock代表从每个基本块入手）。<br>由于这些涉及到llvm的IR组件的都继承自llvm:: value，我们可以使用llvm::value::getName()<br>和llvm::value::setName() 进行涉及到函数名的操作<br>这里我们就编写一个pass，使所有函数名在编译过程全部随机化吧~</p><p><img src="http://static.zybuluo.com/Disp41r/gqrm14k8w2svy10i3g4vch9y/%E5%9B%BE%E7%89%87.png" alt="图片.png-53.6kB"></p><p>第一步现在transform文件夹下新建一个文件夹，这个文件夹里面包含三个文件，一个是Cmake.txt这个是编译文件，还有就是实现目标核心逻辑的cpp文件，还有就是export文件，cmake这个文本文档不用自己编写，可以复制其他文件夹下的稍微修改即可<br>然后，我们需要编写的pass文件如下（略修改）</p><p><img src="http://static.zybuluo.com/Disp41r/jelpfn6td81m0ytnusbhuffr/%E5%9B%BE%E7%89%87.png" alt="图片.png-79kB"></p><p>可以看到大概逻辑就是首先注册一个随机字符串的函数，然后还是重写runOnModule方法，最后就是直接setName就行，这样就实现了函数名的全部随机化。</p><p>下面的一些知识。。主要是我无法理解phi结点的作用，以及在编写pass中要特殊处理的原因，我翻了一些资料。总结如下</p><p>最近我正在探索一种方法以给代码更好的保护，在观念上和vmp类似。<br>在几年之前，我就有了这个类似的想法，在那时lli仍然十分年轻，并且严重拘泥于目标平台。但是最近，随着看见了一大堆中国的移动应用安全公司声称他们可以让他们客户的代码运行在一个vm中，然后我就想，如何才能实现这样子以及，这个真的有可能吗？因为我们都知道ios的内核中有策略确保jit这种方式是不可行。<br> // 上述翻译自mayuyu.io</p><p>对于llvm ir来说，还有一个重要的知识点就是phi结点，先去看下llvm官方的解释：</p><p><img src="http://static.zybuluo.com/Disp41r/1g0bnvya6yp0zvzxki81q5v7/%E5%9B%BE%E7%89%87.png" alt="图片.png-71.2kB"></p><p>大概就是说，llvm是一种SSA的编译器（static single assignment），也就是一个变量自始至终只可以被赋值一次，（其实本质上，llvm的开源文档里说过，llvm的确要求寄存器的值严格遵守SSA，但是他的内存单元并不用遵循）</p><p><img src="http://static.zybuluo.com/Disp41r/uazqbqrfmdrena02dzoq1yvz/%E5%9B%BE%E7%89%87.png" alt="图片.png-13.7kB"></p><p>但是由于程序的原因，一个变量肯定会不停修改的，这时候就要用到了phi结点了，比如说下面的程序</p><p><img src="http://static.zybuluo.com/Disp41r/oi71ir3yvs5prqilog0furyi/%E5%9B%BE%E7%89%87.png" alt="图片.png-1.2kB"></p><p>在v小于10的情况下，a会被赋值为2，但是在赋值成2之前，a已经被赋值为了1，所以这时候根据程序控制流的改变，在变量被重新赋值处插入phi结点，使用了phi结点后的代码如下</p><p><img src="http://static.zybuluo.com/Disp41r/2jd85ku43w3vto94vkot2s6y/%E5%9B%BE%E7%89%87.png" alt="图片.png-1.5kB"></p><p>在zhang博客中，对phi有着比官方更详细的解释，实际上llvm ir中很少使用phi结点，因为从上面可以看出来，生成phi结点需要申请大量的临时变量，所以说，最原始的，没有经过llvm pass优化的llvm ir中，它并不是SSA的，但是它在后面的优化中会被构造成SSA的，如何优化呢，llvm采用了两种方法去应对，一个是DemotePHIToStack，一个是mem2Reg，对于第一个来说，llvm ir在申请和定义变量时，都是采用的alloca去申请，DemotePHIToStack的实现如下</p><p>1每一个互斥变量变为一个栈中的内存分配，比如说如下<br>%c = alloca i32, align 4<br>（alloca本质上是在栈中分配空间）此时%c代表的是变量的地址</p><p>2每一次读取变量时，变成从栈中装载数据<br>%10 = load i32, i32* %c, align 4<br>这里把c的值取出，赋给了第十号局部变量</p><p>3每一次更新变量的数值时，转换成对栈中数据的一次存储<br>store i32 %add, i32* %c, align 4<br>这里看到，直接用store存进了栈中，更新了c的值</p><p>4需要获得变量地址时，只需要从栈中直接取出地址</p><p>总之就是说，他把要所有用到的变量在栈里面申请，然后操作时都是在栈里操作，但是，这样会造成大量对栈（内存）的访问，因此会造成严重的性能问题，对此llvm也有对策，有一个优化pass叫mem2reg，它的作用就是在alloca分配的栈变量转化成SSA寄存器，并且在合适的地方插入PHI结点，这样，就完成了初始的ir不是ssa向ssa的转变（一言以概之，经过clang初步编译的ir并不符合SSA，但是经过pass优化之后，就符合了）</p><p>——————————————————————————————————————</p><p>补充：关于phi结点在大部分编译器里实现方式</p><p>作者：RednaxelaFX<br>链接：<a href="https://www.zhihu.com/question/24992774/answer/29740949" target="_blank" rel="noopener">https://www.zhihu.com/question/24992774/answer/29740949</a><br>来源：知乎<br>著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。<br>由于目标指令集多半不支持“Phi”的概念，编译器里通常会有一个pass是“resolution”，把Phi node给resolve为move（也叫copy insertion），经过了resolution之后再生成具体的目标代码。经过Phi resolution的IR就退出了SSA形式，所以这个动作也叫做SSA destruction，缩写de-SSA。在编译器的源码里看到名如“PhiResolver”之类的东西那就是这玩儿了。<br>举例来说，如果在一个基本块B2的开头有：<br>x2 = phi(x0, x1)<br>那么最简单的resolution做法就是：假如x0在基本块B0定义，x1在基本块B1定义，并且假如x0分配到了R1，x1分配到了R2，x2分配到了R3，那么在B0的末尾会生成：<br>move R3 &lt;- R1<br>而在B1末尾则会生成：<br>move R3 &lt;- R2<br>这样后面R3就得到正确的x2的值了。<br>当然举的这个例子所生成的代码比较浪费寄存器。实际上如果Phi resolution在寄存器分配之前做，那么寄存器分配器通常会想办法把Phi引发的move给coalesce到同一个寄存器，这样可能x0和x1都会被设法分配到R2上，就不需要那个额外的move来实现Phi的语义了。<br>这种resolution可以发生在寄存器分配之前，也可以发生在寄存器分配之后。现在比较常见的是先做了resolution再做寄存器分配，这样的话寄存器分配就不是在SSA形式上进行的；但是因为SSA形式上的干涉图是cordal graph，在它上面做寄存器分配也可以很方便，所以现在也有一些编译器选择在寄存器分配之后才做Phi resolution。</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;h2 id=&quot;ollvm-部分提前知识&quot;&gt;&lt;a href=&quot;#ollvm-部分提前知识&quot; class=&quot;headerlink&quot; title=&quot;ollvm 部分提前知识&quot;&gt;&lt;/a&gt;&lt;center&gt;ollvm 部分提前知识&lt;/center&gt;&lt;/h2&gt;&lt;p&gt;寒假在家，分析了ollvm的混淆实现（很多地方借鉴了别处的分析，只不过我的分析可能具体点，很多地方翻译了张总的博客），由于在家写的是word，就直接复制粘贴到markdown里了，如果不妥，请见谅，如果发现侵权，请联系&lt;a href=&quot;mailto:858689519@qq.com&quot;&gt;858689519@qq.com&lt;/a&gt;&lt;br&gt;from mayuyu.io&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="ollvm" scheme="http://yoursite.com/tags/ollvm/"/>
+    
+  </entry>
   
   <entry>
     <title>Hello World</title>
