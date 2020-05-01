@@ -2,6 +2,20 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://yoursite.com/2020/05/01/Ollvm-0x1/</loc>
+    
+    <lastmod>2020-05-01T08:48:55.935Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://yoursite.com/2020/05/01/hello-world/</loc>
+    
+    <lastmod>2020-05-01T08:47:44.752Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://yoursite.com/2020/05/01/Ollvm-0x0/</loc>
     
     <lastmod>2020-05-01T08:45:15.602Z</lastmod>
@@ -19,13 +33,6 @@
     <loc>http://yoursite.com/%25E2%2580%259Cabout%25E2%2580%259D/index.html</loc>
     
     <lastmod>2020-05-01T08:39:14.264Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://yoursite.com/2020/05/01/hello-world/</loc>
-    
-    <lastmod>2020-05-01T07:47:35.883Z</lastmod>
     
   </url>
   
