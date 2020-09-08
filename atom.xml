@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://caicai.gold/"/>
-  <updated>2020-05-03T10:37:31.007Z</updated>
+  <updated>2020-09-08T10:44:11.971Z</updated>
   <id>http://caicai.gold/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>读研的一些碎碎念</title>
+    <link href="http://caicai.gold/2020/09/08/%E8%AF%BB%E7%A0%94%E7%9A%84%E4%B8%80%E4%BA%9B%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
+    <id>http://caicai.gold/2020/09/08/读研的一些碎碎念/</id>
+    <published>2020-09-08T10:43:24.000Z</published>
+    <updated>2020-09-08T10:44:11.971Z</updated>
+    
+    <content type="html"><![CDATA[<a id="more"></a><h1 id="关于读研的一些碎碎念"><a href="#关于读研的一些碎碎念" class="headerlink" title="关于读研的一些碎碎念"></a><center>关于读研的一些碎碎念</center></h1><h2 id="回首往昔"><a href="#回首往昔" class="headerlink" title="回首往昔"></a>回首往昔</h2><p>9月份开学了，尽管和预想的不是很一样，但是仍然对未来充满了希望，回首往昔，大学四年好像虚度，又好像没有（怎么和谜语人一样），还是很开心在本科期间接触了ctf，接触了信息安全，认识了志同道合的人，最感谢的人是sakura和eax，在我刚开始学习时陪伴了很久，要不然凭我的性子，估计没法坚持这么久吧hhh，不如说ctf是我长这么大坚持的最久的一件事了，还有就是我的学弟，能容忍我的坏脾气，和我当了这么久的队友（b1cx tql）。</p><h2 id="更进一步"><a href="#更进一步" class="headerlink" title="更进一步"></a>更进一步</h2><p>停笔了很久，想动笔，但是不知道写什么，一些ctf赛题基本上做完就扔，也不是很想去看第二遍，因此后面应该不会去更新关于ctf的一些博客了（碰到一些特别惊艳的题目除外），逆向的话，如果还在做的话就写写，开学和导师讨论了下研究方向，主要做AI Security，一开始看了对抗样本，感觉好酷，好geek，geekpwn也有相关的CAAD竞赛，但是最近几年实在是太火热了，相关的工作做了太多，导致想要再做出些成果成本太高了（退堂鼓一级选手！），于是选择了投毒攻击相关，投毒攻击主要也分两种，模型偏移和后门攻击，后面应该主要更新这块的博客和学习笔记，争取写日记哈哈哈哈。</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;a id=&quot;more&quot;&gt;&lt;/a&gt;
+&lt;h1 id=&quot;关于读研的一些碎碎念&quot;&gt;&lt;a href=&quot;#关于读研的一些碎碎念&quot; class=&quot;headerlink&quot; title=&quot;关于读研的一些碎碎念&quot;&gt;&lt;/a&gt;&lt;center&gt;关于读研的一些碎碎念&lt;/center&gt;&lt;/h1&gt;&lt;h2 id
+      
+    
+    </summary>
+    
+    
+  </entry>
   
   <entry>
     <title>忙里偷闲 尝试驱动读写</title>
