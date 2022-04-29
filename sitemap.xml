@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://dispa1r.github.io/2022/04/29/index/</loc>
+    
+    <lastmod>2022-04-29T10:30:08.001Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://dispa1r.github.io/about/index.html</loc>
     
     <lastmod>2022-04-29T10:08:44.501Z</lastmod>
@@ -19,13 +26,6 @@
     <loc>https://dispa1r.github.io/link/index.html</loc>
     
     <lastmod>2022-04-29T08:53:11.487Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://dispa1r.github.io/2022/04/29/hello-world/</loc>
-    
-    <lastmod>2022-04-29T08:20:20.494Z</lastmod>
     
   </url>
   
