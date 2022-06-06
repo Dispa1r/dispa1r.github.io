@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://dispa1r.github.io/"/>
-  <updated>2022-06-06T06:53:32.565Z</updated>
+  <updated>2022-06-06T08:43:50.225Z</updated>
   <id>https://dispa1r.github.io/</id>
   
   <author>
@@ -15,6 +15,31 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>跨链论文-IOTJ2021</title>
+    <link href="https://dispa1r.github.io/2022/06/06/%E8%B7%A8%E9%93%BE%E8%AE%BA%E6%96%87-IOTJ2021/"/>
+    <id>https://dispa1r.github.io/2022/06/06/跨链论文-IOTJ2021/</id>
+    <published>2022-06-06T08:43:02.000Z</published>
+    <updated>2022-06-06T08:43:50.225Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="A-cross-chain-trusted-reputation-scheme-for-a-shared-charging-platform-based-on-blockchain"><a href="#A-cross-chain-trusted-reputation-scheme-for-a-shared-charging-platform-based-on-blockchain" class="headerlink" title="A cross-chain trusted reputation scheme for a shared charging platform based on blockchain"></a>A cross-chain trusted reputation scheme for a shared charging platform based on blockchain</h1><h2 id="解决的三个问题"><a href="#解决的三个问题" class="headerlink" title="解决的三个问题"></a>解决的三个问题</h2><ul><li>1) It is difficult to verify the authenticity of information. When calculating reputation of the multi-chain charging model, C2T smart contract needs to call the information on different blockchains. Due to different consensus mechanisms adopted by different blockchains, the authenticity of the information cannot be mutually verified.<br>这里是跨链数据真实性的问题</li><li>2) It is difficult to verify the real-time of information. Reputation is a real-time concept. To ensure the validity of reputation, real-time data need to be called from different blockchains. The authenticity of data is not the same as real-time: the authenticity of data can be verified by the information on the blockchain, while outdated real data cannot reflect its real-time performance.<br>数据实时性的问题</li><li>3) The calculated reputation may be inconsistent with the information recorded in the blockchain. During the process of calculating reputation, information on blockchains is still being written, which will cause the calculated reputation to be inconsistent with the information on the blockchain, resulting in invalid reputation.<br>计算过程中链上数据仍然在更新，导致数据一致性的问题</li></ul><h2 id="主要贡献"><a href="#主要贡献" class="headerlink" title="主要贡献"></a>主要贡献</h2><p>1) To solve the problem of calculating reputation in the multi-chain charging model, we design a $C_2T$ smart contract to implement information calls between different blockchains.<br>为了解决单链存储和查询信息的效率问题，提出了一种多链架构模型，并且设计了一种$C_2T$智能合约进行多链数据查询<br>2) To verify the authenticity of information called between different blockchains, we propose a data mutual trust mechanism based on merkel proof. In the data mutual trust mechanism, one party can quickly prove the authenticity of specific data on other blockchains without obtaining the full data.<br>解决上面的问题一，数据真实性的问题，利用默克尔证明快速进行验证数据真实性并且不用获取到全部信息<br>3) Considering the block size limitation issue, to achieve real-time validation of cross-chain information, we propose a new data structure called VerRealTime composed of multiple counting bloom filters (MCBF), which can ensure the real-time of cross chain information and save space.<br>利用多重计数布隆过滤器解决上述问题二，数据实时性的问题，淘汰和替代旧数据<br>4) To ensure that the reputation is consistent with the information on blockchains, this paper utilizes hash mutexes to lock the information resources used in calculating reputation. After calculating reputation, $C_2T$ smart contract unlocks the locked information to ensure a strong consistency of reputation.<br>解决上述问题3，数据一致性的问题，使用哈希互斥在计算的过程中锁定信息<br>5) We analyze the security of $C_2T$ smart contract in theory. Besides, we conduct experiments on the consumption and effects of $C_2T$ smart contract</p><h2 id="详解"><a href="#详解" class="headerlink" title="详解"></a>详解</h2><p>Background：</p><ul><li>C1 身份信息链，保存了接入的EV、CP的证书</li><li>C2 充电信息链，保存了每一次的充电信息</li><li>C3 repuation链，保存了充电评价</li></ul><h3 id="多链架构"><a href="#多链架构" class="headerlink" title="多链架构"></a>多链架构</h3><p>架构图<br><img src="/uploads/upload_15abbd0cbdfe3060e61878a0621957b8.png" alt=""></p><p>$C_2T$合约工作流程图<br><img src="/uploads/upload_5893afeb1a6c5636d8913ab758f2a7c6.png" alt=""></p><ul><li>1 EV充电完毕发起评价请求至C3，C3激励$C_2T$合约，传入参数为ID</li><li>2 为了保证请求的真实性，合约向C1发起请求，获取对应ID对应的证书，并且将证书发送给合约进行check</li><li>3 如果步骤2没有问题，那么合约向C2发起请求，查询对应的EV和CP的id的最近一条充电记录</li><li>4 合约获取到所需全部信息，进行reputation calculation之后结果保存至C3链</li></ul><h3 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h3><ul><li>数据来源认证<br>$C_2T$合约部署在$C_3$上，其中负责验证的模块$M_v$是单独工作的，</li></ul><p>CallReq q = {$C_j$ , Q} (j ∈ {1, 2}, Q = (ID, $c’$ )) $c’$代表查询语句</p><p><img src="/uploads/upload_0818a6555e3cc9ab403ca226e716757c.png" alt="认证流程图"></p><p>其中c是query result，然后等于说$C_3$在自己链中维护了一个存储的merkle树，其中叶子结点保存了全部的info。</p><ul><li><p>数据实时性<br>MCBF解决数据实时性：优化只需要一次哈希，常规BF与CBF都需要做多次哈希<br><img src="/uploads/upload_84f1e3dea6a15a64b9dde1fc8e9f0570.png" alt=""><br>分为三步：</p><ul><li>初始化：k个CBF置零，哈希得到r，用r对k个大质数mod<img src="/uploads/upload_4f307ec1090fdec98053a065cb3ff8a5.png" alt=""></li><li>查询部分：这个比较简单，就是判断k个CBF中有一个为0则不是实时<img src="/uploads/upload_df0475aa6c3a741e1c8b74800844f45b.png" alt=""></li><li>更新部分：就是先删除再插入<img src="/uploads/upload_8ce4edfa09713fed7c08e1f775db229e.png" alt=""></li></ul></li><li><p>数据一致性：使用哈希锁对即将查询的资源进行lock，两个哈希，一个上锁一个解锁<img src="/uploads/upload_984a222e35110cea4f573abfe3db6eb4.png" alt=""></p></li></ul><h3 id="安全性分析"><a href="#安全性分析" class="headerlink" title="安全性分析"></a>安全性分析</h3><ul><li><p>Authenticity attacks.</p></li><li><p>Real-time attacks</p></li><li><p>Inter-chain write mutual exclusion attack</p></li></ul><h3 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h3><p>reputation 计算公式：</p><p><img src="/uploads/upload_c9e9d89145af9401a98c90377c7ef705.png" alt=""><br>$R_{cp,n−1}$ 代表上一次盖CP的分数<br>$\mu$ 是可调整的参数，由rating数据的变化速度决定<br>$W_n$ 是用户给出的评价等级<br>$E_n$ 是CP的得分的期望<br>$\phi(R_{cn,n-1})$ 是衰减函数</p><p><img src="/uploads/upload_1bf0ebea67aa1a861adf61e7ee01795d.png" alt="每一步骤和不同的结果的Gas费用"></p><p><img src="/uploads/upload_5d847e495b7010d877dce5d2354db6d8.png" alt="不同深度的merkel树的验证过程的gas消耗"></p><h2 id="一些可以改进的地方"><a href="#一些可以改进的地方" class="headerlink" title="一些可以改进的地方"></a>一些可以改进的地方</h2><ul><li><p>设立一个比较具体的背景：比如说物流</p></li><li><p>根据接入链数量动态调整Merkle的高度缓解监管链存储压力（设计一种算法）</p></li><li><p>链之间的通信方式？应该还是要通过路由，如果智能合约直接发起请求，那么就破坏了链本身的安全性（可以用第一篇论文的跨链框架）</p></li><li><p>要维护一颗不断有实时信息写入的merkel树开销比较大，并且数据越多，结点数量越多，存储的开销越大。（改进merkel树的结构与设计，这里打算使用递归Merkle树，这样可以维护树的高度保持不变，添加数据也不会有额外的存储开销，并且将叶子结点使用双向链表连接加速查询和实现删除的效果）</p></li></ul><p><img src="/uploads/upload_3edeb498606ef0dec3cf803e6c4d9ee7.png" alt=""></p><ul><li><p>对正在进行的数据进行上锁，如果这个时候有了请求更新会被丢弃吗？（是否可以添加一个缓冲队列，如果冲突则在下一个区块打包）</p></li><li><p>攻击者可以随意伪造一个合法的但是不存在的merkel证明，这个就无法验证（使用递归默克尔树）</p></li><li><p>实验只计算了消耗的gas，并没有把耗时考虑进去</p></li><li><p>取多链数据时，考虑下多链数据的隐私保护，使用同态加密</p></li></ul>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;h1 id=&quot;A-cross-chain-trusted-reputation-scheme-for-a-shared-charging-platform-based-on-blockchain&quot;&gt;&lt;a href=&quot;#A-cross-chain-trusted-reputati
+      
+    
+    </summary>
+    
+    
+      <category term="跨链" scheme="https://dispa1r.github.io/tags/%E8%B7%A8%E9%93%BE/"/>
+    
+      <category term="Paper" scheme="https://dispa1r.github.io/tags/Paper/"/>
+    
+  </entry>
   
   <entry>
     <title>NEAR subgraph tutorial</title>
