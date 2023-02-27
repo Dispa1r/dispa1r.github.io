@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://dispa1r.github.io/"/>
-  <updated>2023-02-27T03:23:51.827Z</updated>
+  <updated>2023-02-27T08:31:37.139Z</updated>
   <id>https://dispa1r.github.io/</id>
   
   <author>
@@ -15,6 +15,31 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Falco全解析(一)</title>
+    <link href="https://dispa1r.github.io/2023/02/27/Falco%E5%85%A8%E8%A7%A3%E6%9E%90-%E4%B8%80/"/>
+    <id>https://dispa1r.github.io/2023/02/27/Falco全解析-一/</id>
+    <published>2023-02-27T08:29:20.000Z</published>
+    <updated>2023-02-27T08:31:37.139Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="Falco全解析-一"><a href="#Falco全解析-一" class="headerlink" title="Falco全解析(一)"></a>Falco全解析(一)</h1><h2 id="Falco能做什么"><a href="#Falco能做什么" class="headerlink" title="Falco能做什么"></a>Falco能做什么</h2><p><code>Falco</code>主要通过系统调用去加固和监视系统</p><ul><li>解析来自内核的系统调用</li><li>强大的规则引擎判断系统调用是否安全</li><li>当发现非法系统调用时发出警告</li></ul><h2 id="Falco架构"><a href="#Falco架构" class="headerlink" title="Falco架构"></a>Falco架构</h2><p><img src="https://hackmd.summershrimp.com/uploads/upload_f68eda819f130fbb193b35da3c5d0aa2.png" alt=""></p><p>从最底层开始介绍,<code>Falco</code>最底层是由<code>LSM</code>和<code>ebpf</code>驱动的一个<code>monitor</code>,他会捕捉全部的系统调用并且传输至引擎中判断,引擎也就是<code>libsinsp</code>和<code>libscap</code>,最后引擎使用<code>GRP</code>C或者其他通信方式发送出去,算是比较常规的架构(内核获取信息+用户态引擎判断+网络传输结果)</p><p>我对这部分ebpf的代码比较感兴趣,内核部分的代码在<a href="https://github.com/falcosecurity/libs">这里</a>可以找到,同时引擎的代码也在这个仓库中,有意思的一点是现在<a href="https://github.com/draios/sysdig">sysdig</a>的内核探针也是用的是Falco的,然而Falco是捐赠给CNCF的开源项目</p><h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><p><code>Falco</code>有直接可以运行的binary文件,因此可以直接执行<code>falco</code>,也可以使用官方提供的<code>Falco</code> Docker镜像运行,官方更推荐使用特权模式运行:<br><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">docker pull falcosecurity/falco-driver-loader:latest</span><br><span class="line">docker run --rm -i -t \</span><br><span class="line">    --privileged \</span><br><span class="line">    -v /root/.falco:/root/.falco \</span><br><span class="line">    -v /proc:/host/proc:ro \</span><br><span class="line">    -v /boot:/host/boot:ro \</span><br><span class="line">    -v /lib/modules:/host/lib/modules \</span><br><span class="line">    -v /usr:/host/usr:ro \</span><br><span class="line">    -v /etc:/host/etc:ro \</span><br><span class="line">    falcosecurity/falco-driver-loader:latest</span><br></pre></td></tr></table></figure></p><p>我这里由于后期有打算进行二次开发,因此选择自己编译后运行二进制文件,我的环境如下:宿主机 M1 mac,虚拟机使用的是<code>MultiPass</code>,<code>ubuntu 22.10</code>发行版,内核版本<code>5.15.0-60-generic</code>,因为之前已经在这个虚拟机中测试过ebpf,所以说我可以直接编译</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">git clone https://github.com/falcosecurity/falco.git</span><br><span class="line">mkdir build &amp;&amp; cd build</span><br><span class="line">cmake ..</span><br><span class="line">make (falco/bpf/driver/libscap等,这里选择你想要编译的组建)</span><br></pre></td></tr></table></figure><p>一路也比较顺利,编译之后在<code>/build/driver</code>可以看见你编译出的.ko后缀的驱动和.o后缀的<code>BTF</code>文件,内核可以直接加载并运行,编译整个<code>Falco</code>消耗的时间还是比较长因为他会编译所用到的所有依赖(而且是边下载边编译)…耐心等待即,编译时还出现了compiler被莫名其妙terminate的情况,给<code>MulitPass</code>加了点内存之后总算可以编译成功了</p><p><img src="https://hackmd.summershrimp.com/uploads/upload_d41796f9dd6d98f01d3f2f6fbdbd0cb4.png" alt=""></p><p>直接运行binary其实坑挺多的,需要你首先使用<code>falco-driver-loader</code>去加载驱动或者ebpf,然后再补充rules和配置文件之后才可以运行,更方便的还是使用docker去运行,<code>Falco</code>既可以运行在容器中,也可以运行在宿主机上,一般来说<code>Falco</code>在k8s中以<code>DaemonSet</code>的形式运行在每一台Node上</p><p>再补充一点坑的地方,从官方仓库下载好的预编译好的probe.o文件是专门为pagesize=64k的linux内核编译的,所以我的并不能加载普通的bpf文件,但是我后来试了一下modern(也就是开启了BTF支持的,当然这里要求内核版本大于5.8),modern BPF不仅实现了CO—RE,并且使用ring buffer取代了perf map算是有了性能提升,可以看一下运行falco之后使用bpftool查看,一下子多了两百多个程序…</p><p> <img src="https://hackmd.summershrimp.com/uploads/upload_3c57d75e38699fe7be8b3506ccf6cbfd.png" alt=""></p><p>还有一个坑记录一下:<code>MultiPass默认</code>是给了单个cpu,想要使用Ring Buffer的话必须CPU数量在2以上,所以需要改一下</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">multipass set local.spruce-bluejay.cpus=4</span><br></pre></td></tr></table></figure><h2 id="libs代码解析"><a href="#libs代码解析" class="headerlink" title="libs代码解析"></a>libs代码解析</h2><p>libs仓库中的架构图更详细一些</p><p><img src="https://hackmd.summershrimp.com/uploads/upload_fa390a63529311d3b2c80d805e758fcc.png" alt=""></p><p>libs仓库中的文件分布如下</p><ul><li><code>drivers</code>目录包含了全部内核层的东西,也就是驱动和<code>ebpf</code>程序,这部分程序主要监视和捕获内核</li><li><code>userspace</code>目录则是包含了用户态的东西,<code>libscap</code>(library for system capture)主要负责直接与驱动交互,控制内核层的事件抓取,同时会捕捉文件打开与关闭的情况,并且实现了操作系统状态收集,最后把这些事件全部发送至libinsp中;<code>libsinsp</code>(library for system inspection)主要负责对发送来的事件进行一些简单的过滤,并且解析过滤后的事件,并且对输出结果做一些格式化</li></ul><h2 id="ebpf部分"><a href="#ebpf部分" class="headerlink" title="ebpf部分"></a>ebpf部分</h2><p>入口是<code>probe.c</code>,这里是主要挂载了ebpf跟踪点的地方,传统的ebpf部分在nsfocus中已经有比较详细的讲解,下一篇中主要分析modern和传统ebpf的实现和改造</p><h2 id="引用文献"><a href="#引用文献" class="headerlink" title="引用文献"></a>引用文献</h2><ul><li><a href="https://falco.org/docs/getting-started">https://falco.org/docs/getting-started</a></li><li><a href="http://blog.nsfocus.net/falco-ebpf/">http://blog.nsfocus.net/falco-ebpf/</a></li></ul>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;h1 id=&quot;Falco全解析-一&quot;&gt;&lt;a href=&quot;#Falco全解析-一&quot; class=&quot;headerlink&quot; title=&quot;Falco全解析(一)&quot;&gt;&lt;/a&gt;Falco全解析(一)&lt;/h1&gt;&lt;h2 id=&quot;Falco能做什么&quot;&gt;&lt;a href=&quot;#Falco能做什么&quot;
+      
+    
+    </summary>
+    
+    
+      <category term="Falco" scheme="https://dispa1r.github.io/tags/Falco/"/>
+    
+      <category term="ebpf" scheme="https://dispa1r.github.io/tags/ebpf/"/>
+    
+  </entry>
   
   <entry>
     <title>寒假学习笔记</title>
@@ -35,9 +60,9 @@
     </summary>
     
     
-      <category term="k8s" scheme="https://dispa1r.github.io/tags/k8s/"/>
-    
       <category term="ebpf" scheme="https://dispa1r.github.io/tags/ebpf/"/>
+    
+      <category term="k8s" scheme="https://dispa1r.github.io/tags/k8s/"/>
     
       <category term="日记" scheme="https://dispa1r.github.io/tags/%E6%97%A5%E8%AE%B0/"/>
     
