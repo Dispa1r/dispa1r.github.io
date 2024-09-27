@@ -1,0 +1,243 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>9月安全笔记 | DravenLu</title><meta name="keywords" content="安全,笔记,二进制,PAC"><meta name="author" content="Dispa1r"><meta name="copyright" content="Dispa1r"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="daliy hacking这些笔记是我决定从海思内转至 RO0T lab之后学习的一些笔记, 暂时更新一下 9.2 读高通pac的白皮书 观看侯捷老师的C++内存管理session1  9.8 新书到了ebpf 云原生安全, 对ebpf一直很感兴趣, 之前学过一段时间, 最近再看一看,但是第一章倒是主要只讲了一些云原生安全的general的知识, 也就是docker的引入扩大了攻击面, 看到的一些">
+<meta property="og:type" content="article">
+<meta property="og:title" content="9月安全笔记">
+<meta property="og:url" content="https://dispa1r.github.io/2024/09/28/9%E6%9C%88%E5%AE%89%E5%85%A8%E7%AC%94%E8%AE%B0/index.html">
+<meta property="og:site_name" content="DravenLu">
+<meta property="og:description" content="daliy hacking这些笔记是我决定从海思内转至 RO0T lab之后学习的一些笔记, 暂时更新一下 9.2 读高通pac的白皮书 观看侯捷老师的C++内存管理session1  9.8 新书到了ebpf 云原生安全, 对ebpf一直很感兴趣, 之前学过一段时间, 最近再看一看,但是第一章倒是主要只讲了一些云原生安全的general的知识, 也就是docker的引入扩大了攻击面, 看到的一些">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://hackmd.summershrimp.com/uploads/upload_08bfa2cc52f2471ea80a04d6788087db.jpg">
+<meta property="article:published_time" content="2024-09-27T16:54:07.000Z">
+<meta property="article:modified_time" content="2024-09-27T16:56:18.400Z">
+<meta property="article:author" content="Dispa1r">
+<meta property="article:tag" content="安全">
+<meta property="article:tag" content="笔记">
+<meta property="article:tag" content="二进制">
+<meta property="article:tag" content="PAC">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://hackmd.summershrimp.com/uploads/upload_08bfa2cc52f2471ea80a04d6788087db.jpg"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://dispa1r.github.io/2024/09/28/9%E6%9C%88%E5%AE%89%E5%85%A8%E7%AC%94%E8%AE%B0/"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery@2/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery@2/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '9月安全笔记',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2024-09-28 00:56:18'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.1.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://lh3.googleusercontent.com/WO1GMB2JeMcJnRdp8gthoxpF_pLHnceekNZdlqYBcwoArMMxnEVFxpytRjsXI-oJFR3BoepLBPGes1MO6VafBNwWxgRzIBMw1YcVjw=s0" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data is-center"><div class="data-item"><a href="/archives/"><div class="headline">文章</div><div class="length-num">14</div></a></div><div class="data-item"><a href="/tags/"><div class="headline">标签</div><div class="length-num">21</div></a></div><div class="data-item"><a href="/categories/"><div class="headline">分类</div><div class="length-num">0</div></a></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> Link</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> About</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('https://hackmd.summershrimp.com/uploads/upload_08bfa2cc52f2471ea80a04d6788087db.jpg')"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">DravenLu</a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> Link</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> About</span></a></div></div><div id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">9月安全笔记</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-09-27T16:54:07.000Z" title="发表于 2024-09-28 00:54:07">2024-09-28</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2024-09-27T16:56:18.400Z" title="更新于 2024-09-28 00:56:18">2024-09-28</time></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="9月安全笔记"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="daliy-hacking"><a href="#daliy-hacking" class="headerlink" title="daliy hacking"></a>daliy hacking</h1><p>这些笔记是我决定从海思内转至 RO0T lab之后学习的一些笔记, 暂时更新一下</p>
+<h2 id="9-2"><a href="#9-2" class="headerlink" title="9.2"></a>9.2</h2><ul>
+<li>读高通pac的白皮书</li>
+<li>观看侯捷老师的C++内存管理session1</li>
+</ul>
+<h2 id="9-8"><a href="#9-8" class="headerlink" title="9.8"></a>9.8</h2><ul>
+<li>新书到了ebpf 云原生安全, 对ebpf一直很感兴趣, 之前学过一段时间, 最近再看一看,但是第一章倒是主要只讲了一些云原生安全的general的知识, 也就是docker的引入扩大了攻击面, 看到的一些话还是很有意思, 安全左移, 防护右移</li>
+<li>继续看高通 pac 白皮书和论文pac man, pac和MTE 都很有意思, 算是最近arm架构为了抵御内存破坏漏洞引入的新机制, 看完 bypass pac之后可以再看看MTE的一些bypass, keep hacking</li>
+</ul>
+<p><img src="/uploads/upload_cb3c4cc15242b79a81295fa862a61bf2.png" alt=""></p>
+<p><img src="/uploads/upload_8b64f6523dc9b42b42cf5134d1b83326.png" alt=""></p>
+<p><img src="/uploads/upload_3528a5403bd282ebc3dca8aa259b9877.png" alt=""></p>
+<p>找了篇综述，感觉将的还是挺好的<br><img src="/uploads/upload_6e71dfbda1fb663be6831cddf53d3eae.png" alt=""></p>
+<p>还收集到了一些资料,明天看下<br><a target="_blank" rel="noopener" href="https://hardenedlinux.github.io/gnu/toolchains/security/2017/06/13/ARM_PA.html">https://hardenedlinux.github.io/gnu/toolchains/security/2017/06/13/ARM_PA.html</a> (编译器实现相关)</p>
+<p><a target="_blank" rel="noopener" href="https://justinyan.me/post/4129">https://justinyan.me/post/4129</a> (这个问题也很有意思,为什么能多出12bit存放pac)</p>
+<ul>
+<li>读了proactor与reactor这两种高性能网络编程模式(完蛋了被扩展去复习io多路复用了,明天上班看),明天看下gaio</li>
+</ul>
+<h2 id="9-9"><a href="#9-9" class="headerlink" title="9.9"></a>9.9</h2><p><img src="/uploads/upload_28697f7bfcb85dde5be640490c312ef8.png" alt=""></p>
+<p>llvm和gcc目前都支持arm pac, 可以看到和纯软件的stack failed check相比, pac的指令要少很多</p>
+<p><img src="/uploads/upload_4a8c52a99d68e5b8bdf967b5543fe5ac.png" alt=""></p>
+<p>随便编译了一个程序,这是软件的stack fail chk</p>
+<p><img src="/uploads/upload_622dbc8bb0cfb4eda50daeab235cb4d1.png" alt=""></p>
+<p>开启pac之后,在函数初始化栈帧之前则会有pac指令</p>
+<p><img src="/uploads/upload_9777fe7b3df8a66409df63b9966c542e.png" alt=""></p>
+<p>lr(x30)： (Link Register) ，保存调用跳转指令 bl 指令的下一条指令的内存地址；也就是所谓的context</p>
+<p><img src="/uploads/upload_9cd97501adfe0448e21c02e1aa94316a.png" alt=""></p>
+<p><img src="/uploads/upload_0d702e7148fb6853596f3cdd111c85fc.png" alt=""></p>
+<p><img src="/uploads/upload_aa5d99c3633416559aae46feb40e5552.png" alt=""></p>
+<p>综述虽然灌水,但是对我这种需要速成的来说,太有用了, pac指令对于data 和 程序用不同的key, 这个根据指令来决定, 操作数1是目标指针, 操作数2是context(对应QARMA算法里的 tweak)</p>
+<p><img src="/uploads/upload_607aca87762eaac198f7755c33d96c2e.png" alt=""></p>
+<p>Examining Pointer Authentication on the iPhone XS. Google<br>Pro-ject Zero. <a target="_blank" rel="noopener" href="https://googleprojectzero.blogspot.com/2019/02/">https://googleprojectzero.blogspot.com/2019/02/</a><br>examining- pointer-authentication-on.html. Feb. 2019.</p>
+<p>iOS Kernel PAC, One Year Later. Google Project Zero. <a target="_blank" rel="noopener" href="https://bazad.github.io/presentations/BlackHat-USA-2020-iOS_Kernel_PAC">https://bazad.github.io/presentations/BlackHat-USA-2020-iOS_Kernel_PAC</a><br>_One_Year_Later.pdf. 2020. </p>
+<p><a target="_blank" rel="noopener" href="https://arxiv.org/pdf/2104.14993">https://arxiv.org/pdf/2104.14993</a></p>
+<h2 id="9-10-补充版"><a href="#9-10-补充版" class="headerlink" title="9.10(补充版)"></a>9.10(补充版)</h2><p><img src="/uploads/upload_51fd7146311c4388b8aaf11425dc672b.png" alt=""></p>
+<p>简单看了一下QARMA算法</p>
+<p><img src="/uploads/upload_e18ceb21654deaa4655d235df24f658d.png" alt=""></p>
+<p><img src="/uploads/upload_564630940c1afa11cd21c81f04bf40f8.png" alt=""></p>
+<p><img src="/uploads/upload_0bacdd1b22e282aafbcab3a3a47f4303.png" alt=""></p>
+<p>记错了啊,s盒是唯一非线性映射的部分,p盒是扩散<br><img src="/uploads/upload_dd1fc010e3274e7f002797707d4f2f48.png" alt=""></p>
+<p>内核单独的APIAkey, 所有用户态进程共享APIAkey<br><img src="/uploads/upload_b04d3e5471af8de147e030417173194f.png" alt=""></p>
+<p>ok,基本上 PAC的工作原理看完了, 现在读一下pj0怎么找到伪造签名组件的</p>
+<h2 id="9-18"><a href="#9-18" class="headerlink" title="9.18"></a>9.18</h2><p>中途断了一段时间，后面一个月高强度更新，anyway中间发生的事情真是一言难尽，继续梳理下要做的事情，还是两个大方向，一是对ARM新架构中引入的安全机制的研究以及相关bypass的学习（MTE和PAC），二是继续学习常见漏洞的利用方式和代码（栈溢出、堆溢出、UAF、Double free、RACE等，这块大体上还是先根据ctf wiki入门，然后找一些advance的题目和技巧，最后看一些实战的案例）</p>
+<p>今天上午温习一些简单的ROP，ret2text, ret2shellcode, ret2libc</p>
+<p>晚上回来看pwn那本书</p>
+<p><img src="/uploads/upload_1e08233bb63481ba88a88f23a7614f13.png" alt=""></p>
+<p><img src="/uploads/upload_162455cfaa239c4d4c069105eae7b2b7.png" alt=""></p>
+<p>canary是存在TLS里的啊<br><img src="/uploads/upload_ffa07bfb6d2881fe28acfda5eee94710.png" alt=""></p>
+<p>看了一会儿x86和x64的pwn, 又去补点arm的pwn</p>
+<p>粗略读了一下这篇文章,写的挺好的,里面的可以学习的资源也很多, 正在手动复现这一题, 公司电脑没有linux没有qemu, 还是自己带mac吧</p>
+<p><a target="_blank" rel="noopener" href="https://xuanxuanblingbling.github.io/ctf/pwn/2022/04/19/babyarm/">https://xuanxuanblingbling.github.io/ctf/pwn/2022/04/19/babyarm/</a></p>
+<p>linux 内核常用保护手段<br><a target="_blank" rel="noopener" href="https://hurricane618.me/2021/04/28/linux-kernel-security-summary/">https://hurricane618.me/2021/04/28/linux-kernel-security-summary/</a></p>
+<p>canary check, ghidra的Listing view还蛮好用的<br><img src="/uploads/upload_abff7fb8d7a4af19a4dee9bd92bf8be1.png" alt=""></p>
+<p>明日计划:</p>
+<ul>
+<li>复现并理解赛题</li>
+<li>阅读pj0 bypass pac的思路, 看一下内部的工具</li>
+</ul>
+<p>总结一下没做的事情:</p>
+<ul>
+<li>南大软件分析课程和实验</li>
+<li>侯捷老师的内存分配课程</li>
+</ul>
+<h2 id="9-19"><a href="#9-19" class="headerlink" title="9.19"></a>9.19</h2><p>今天白天主要看了一下pj0的bypass pac的文章</p>
+<p>这个攻击说的是 PAC的key会在某一刻由内存写入寄存器, 如果攻击者已经拿到读任意内存的权限, 可以在写入的时候窃取PAC key, 攻击限制是PAC使用的加密算法必须是公开且已知的, 否则需要芯片层面的逆向</p>
+<p><img src="/uploads/upload_48cc9864d971b5fa10acdec8d70cfcde.png" alt=""></p>
+<p>穿透特权等级的攻击, 单从指令的伪代码来看, EL0和EL1的PAC实现看上去是一样的, 因此</p>
+<ul>
+<li>读取内核的PAC密钥。</li>
+<li>将我们进程中一个线程的用户空间PAC密钥替换为内核的PAC密钥。</li>
+<li>在该线程的用户空间中执行PAC操作。</li>
+</ul>
+<p>感觉比较鸡肋, 只能在PAC采用非公开 加密算法的时候可以起到作用</p>
+<p><img src="/uploads/upload_7fd8446d6f2ce1df66cbc3dc3ed1e28c.png" alt=""></p>
+<p>这个更鸡肋点<br><img src="/uploads/upload_40a893a70d6fa5ddf822935432efa2cb.png" alt=""></p>
+<p>文章用一个例子来演示如何绕过PAC, 这个 AUTDZA 指令代表的是使用的tweakey是0, 所以单操作数</p>
+<p><img src="/uploads/upload_9b22569aa5e6d73f2808c34c2a77fcd7.png" alt=""></p>
+<h2 id="9-23-9-25"><a href="#9-23-9-25" class="headerlink" title="9.23 - 9.25"></a>9.23 - 9.25</h2><p>为了研究RKP买了一个三星的s22手机, 发现美版的竟然只要1000不到, 拿到手后习惯性的想刷 magisk, 发现进不了recovery模式??? 上网查了下, 美版三星的 S901U1型号没解锁boot loader, 于是退款买了个港版的, 然后就开始对bootloader、 root这些原理有些好奇, 之前也研究说,只不过有点忘了.</p>
+<p>关于magisk原理 读了下面这些文章:<br>这篇太硬核了点, 不过读下来也是有点收获<br><a target="_blank" rel="noopener" href="https://bbs.kanxue.com/thread-275939.htm">https://bbs.kanxue.com/thread-275939.htm</a></p>
+<p>然后看到评论区有个canyie, 读了一下她的博客, 讲的清晰明了很多, 了解了一下发现真的很厉害, 十几岁就是magisk的contributor了, 回想自己二十几年都干了什么…</p>
+<p><a target="_blank" rel="noopener" href="https://blog.canyie.top/2023/11/12/android-booting-shenanigans-and-magiskinit-analysing/">https://blog.canyie.top/2023/11/12/android-booting-shenanigans-and-magiskinit-analysing/</a></p>
+<p><img src="/uploads/upload_c0fa16ac5dbe96f1d14b1c4ea213eecb.png" alt=""></p>
+<p>magisk的具体原理那个章节没有看（尤其是恢复 SELinux）, 过于复杂, 等实际工作需要的时候可以拿出来看看</p>
+<p><img src="/uploads/upload_d4c5e3acaf26bc8e792308184b66a13f.png" alt=""></p>
+<p>看完之后对bootloader那些也是有点云里雾里, 就去看了维术大哥的博客, 关于root和bootlodaer讲的真的很好</p>
+<p>PBL -&gt; SBL -&gt; ABL(实际刷机的boot img), PBL就是trust root 通俗易懂, 这也解释了为什么买的美版三星手机就算找咸鱼大哥也很难刷机, 除非又是史诗级漏洞</p>
+<p><img src="/uploads/upload_813b2aa27e2f7f1b5a30e08bd4bc0d3d.png" alt=""></p>
+<p>紧接着又读了下关于root的那个文章, 讲的也很好</p>
+<p><a target="_blank" rel="noopener" href="https://weishu.me/2021/09/13/what-is-root/">https://weishu.me/2021/09/13/what-is-root/</a></p>
+<p>文章最后也说到了其实都是EL0的 root, 在用户态使用su罢了, 期待的EL1的root是不是就是最近的APatch呢, 给自己挖坑了, 这个真得看吧</p>
+<p><img src="/uploads/upload_79b17ebaf750ce504197e8d54a4d8893.png" alt=""></p>
+<p>今天上午则是看了两篇关于逆向签名的文章, 等于说复习了一下unidbg, 还有ida python的一些东西, 感觉还是不太够, 不过先存着了, 这个人的两篇逆向签名的文章都海挺优质的, 思路清晰, 基本功也扎实, 这些逆向的技术先mark着, 等用到了再看吧</p>
+<p><a target="_blank" rel="noopener" href="https://bbs.kanxue.com/thread-283569.htm">https://bbs.kanxue.com/thread-283569.htm</a></p>
+<p>今天早上还看了ebpf的那篇论文, 感觉想法很简单, 也有点鸡肋. ebpf中有<code>tail call</code>的机制, 用于实现不通ebpf程序之间的跳转，这个跳转是有块类型为 <code>BPF_MAP_TYPE_PROG_ARRAY</code>的表的，如果你有一个可以读写内核内存的漏洞（前提是你有），你就可以通过这个漏洞篡改这个表，实现跳转到任意的ebpf 程序执行， 和指针类似，只不过现在内核里的 CFI 防护太多了，对指针校验的很严格，这个跳转没受保护， 不过确实是个不错的攻击面</p>
+<p>下午继续看PAC的绕过的一些文章</p>
+<h2 id="9-26"><a href="#9-26" class="headerlink" title="9.26"></a>9.26</h2></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">Dispa1r</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://dispa1r.github.io/2024/09/28/9%E6%9C%88%E5%AE%89%E5%85%A8%E7%AC%94%E8%AE%B0/">https://dispa1r.github.io/2024/09/28/9%E6%9C%88%E5%AE%89%E5%85%A8%E7%AC%94%E8%AE%B0/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://dispa1r.github.io" target="_blank">DravenLu</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E5%AE%89%E5%85%A8/">安全</a><a class="post-meta__tags" href="/tags/%E7%AC%94%E8%AE%B0/">笔记</a><a class="post-meta__tags" href="/tags/%E4%BA%8C%E8%BF%9B%E5%88%B6/">二进制</a><a class="post-meta__tags" href="/tags/PAC/">PAC</a></div><div class="post_share"><div class="social-share" data-image="https://hackmd.summershrimp.com/uploads/upload_08bfa2cc52f2471ea80a04d6788087db.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/2024/09/28/Blocksec-%E8%AF%BE%E7%A8%8B%E7%AC%94%E8%AE%B0/"><img class="next-cover" src="https://hackmd.summershrimp.com/uploads/upload_08bfa2cc52f2471ea80a04d6788087db.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Blocksec 课程笔记</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2024/09/28/Blocksec-%E8%AF%BE%E7%A8%8B%E7%AC%94%E8%AE%B0/" title="Blocksec 课程笔记"><img class="cover" src="https://hackmd.summershrimp.com/uploads/upload_08bfa2cc52f2471ea80a04d6788087db.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-09-28</div><div class="title">Blocksec 课程笔记</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="https://lh3.googleusercontent.com/WO1GMB2JeMcJnRdp8gthoxpF_pLHnceekNZdlqYBcwoArMMxnEVFxpytRjsXI-oJFR3BoepLBPGes1MO6VafBNwWxgRzIBMw1YcVjw=s0" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Dispa1r</div><div class="author-info__description">DravenLu的小屋</div></div><div class="card-info-data is-center"><div class="card-info-data-item"><a href="/archives/"><div class="headline">文章</div><div class="length-num">14</div></a></div><div class="card-info-data-item"><a href="/tags/"><div class="headline">标签</div><div class="length-num">21</div></a></div><div class="card-info-data-item"><a href="/categories/"><div class="headline">分类</div><div class="length-num">0</div></a></div></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/dispa1r"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/dispa1r" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="/lrj001228@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#daliy-hacking"><span class="toc-number">1.</span> <span class="toc-text">daliy hacking</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#9-2"><span class="toc-number">1.1.</span> <span class="toc-text">9.2</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-8"><span class="toc-number">1.2.</span> <span class="toc-text">9.8</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-9"><span class="toc-number">1.3.</span> <span class="toc-text">9.9</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-10-%E8%A1%A5%E5%85%85%E7%89%88"><span class="toc-number">1.4.</span> <span class="toc-text">9.10(补充版)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-18"><span class="toc-number">1.5.</span> <span class="toc-text">9.18</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-19"><span class="toc-number">1.6.</span> <span class="toc-text">9.19</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-23-9-25"><span class="toc-number">1.7.</span> <span class="toc-text">9.23 - 9.25</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-26"><span class="toc-number">1.8.</span> <span class="toc-text">9.26</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2024/09/28/9%E6%9C%88%E5%AE%89%E5%85%A8%E7%AC%94%E8%AE%B0/" title="9月安全笔记"><img src="https://hackmd.summershrimp.com/uploads/upload_08bfa2cc52f2471ea80a04d6788087db.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="9月安全笔记"/></a><div class="content"><a class="title" href="/2024/09/28/9%E6%9C%88%E5%AE%89%E5%85%A8%E7%AC%94%E8%AE%B0/" title="9月安全笔记">9月安全笔记</a><time datetime="2024-09-27T16:54:07.000Z" title="发表于 2024-09-28 00:54:07">2024-09-28</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/09/28/Blocksec-%E8%AF%BE%E7%A8%8B%E7%AC%94%E8%AE%B0/" title="Blocksec 课程笔记"><img src="https://hackmd.summershrimp.com/uploads/upload_08bfa2cc52f2471ea80a04d6788087db.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Blocksec 课程笔记"/></a><div class="content"><a class="title" href="/2024/09/28/Blocksec-%E8%AF%BE%E7%A8%8B%E7%AC%94%E8%AE%B0/" title="Blocksec 课程笔记">Blocksec 课程笔记</a><time datetime="2024-09-27T16:49:27.000Z" title="发表于 2024-09-28 00:49:27">2024-09-28</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/01/02/my-dark-2023/" title="my dark 2023"><img src="https://hackmd.summershrimp.com/uploads/upload_08bfa2cc52f2471ea80a04d6788087db.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="my dark 2023"/></a><div class="content"><a class="title" href="/2024/01/02/my-dark-2023/" title="my dark 2023">my dark 2023</a><time datetime="2024-01-02T12:14:25.000Z" title="发表于 2024-01-02 20:14:25">2024-01-02</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/02/27/Falco%E5%85%A8%E8%A7%A3%E6%9E%90-%E4%B8%80/" title="Falco全解析(一)"><img src="https://hackmd.summershrimp.com/uploads/upload_08bfa2cc52f2471ea80a04d6788087db.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Falco全解析(一)"/></a><div class="content"><a class="title" href="/2023/02/27/Falco%E5%85%A8%E8%A7%A3%E6%9E%90-%E4%B8%80/" title="Falco全解析(一)">Falco全解析(一)</a><time datetime="2023-02-27T08:29:20.000Z" title="发表于 2023-02-27 16:29:20">2023-02-27</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/02/27/%E5%AF%92%E5%81%87%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" title="寒假学习笔记"><img src="https://hackmd.summershrimp.com/uploads/upload_08bfa2cc52f2471ea80a04d6788087db.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="寒假学习笔记"/></a><div class="content"><a class="title" href="/2023/02/27/%E5%AF%92%E5%81%87%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" title="寒假学习笔记">寒假学习笔记</a><time datetime="2023-02-27T03:21:01.000Z" title="发表于 2023-02-27 11:21:01">2023-02-27</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2024 By Dispa1r</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.umd.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
